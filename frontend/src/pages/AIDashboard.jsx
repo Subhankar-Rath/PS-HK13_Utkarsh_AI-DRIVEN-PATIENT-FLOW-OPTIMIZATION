@@ -7,6 +7,7 @@ import PediatricsDepartment   from "./PediatricsDepartment";
 import DermatologyDepartment  from "./DermatologyDepartment";
 import GeneralDepartment      from "./GeneralDepartment";
 import ICUDepartment          from "./ICUDepartment";
+import { RescheduleAIButton } from "./AIRescheduleExplainer";
 
 const API_BASE = "http://localhost:8000";
 
@@ -166,8 +167,6 @@ const AIDashboard = () => {
       hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true,
     });
 
-  // ── Emergency count: derived LIVE from dbEmergencies, not from stats ────────
-  // This way when you mark a case ✅ Done, the counter drops immediately.
   const activeEmergencyCount = dbEmergencies.filter(
     e => e.status !== "completed" && e.status !== "cancelled"
   ).length;
@@ -196,13 +195,11 @@ const AIDashboard = () => {
     })
       .then(r => r.json())
       .then(() => {
-        // Optimistically update local state so counter drops instantly
         setDbEmergencies(prev =>
           prev.map(e =>
             e.appointment_id === apptId ? { ...e, status: "completed" } : e
           )
         );
-        // Then re-fetch for full accuracy
         fetchDbEmergencies();
         fetchStats();
         fetchDoctors(selectedShift);
@@ -253,7 +250,6 @@ const AIDashboard = () => {
           </div>
         </div>
 
-        {/* ── EMERGENCY CARD — count is live from dbEmergencies, not stats ── */}
         <div className="metric-card metric-emergency">
           <div className="metric-content">
             <h3 className="metric-value highlight-emergency">{activeEmergencyCount}</h3>
@@ -377,7 +373,11 @@ const AIDashboard = () => {
 
                     <td><StatusBadge status={em.status} /></td>
 
-                    <td>
+                    {/* ── ACTION CELL — AI Explain + Done button ── */}
+                    <td style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                      {em.status !== "completed" && em.status !== "cancelled" && (
+                        <RescheduleAIButton emergency={em} />
+                      )}
                       {em.status !== "completed" && em.status !== "cancelled" ? (
                         <button
                           onClick={() => handleComplete(em.appointment_id, em.department)}
@@ -402,6 +402,7 @@ const AIDashboard = () => {
                         <span style={{ fontSize: 18 }}>✅</span>
                       )}
                     </td>
+
                   </tr>
                 ))}
               </tbody>
